@@ -1,6 +1,6 @@
 [package]
 name = "simple-cli-news"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Waffleleroo (WaffleSoul4)"]
 description = "A simple application that lets you view news with the terminal"
