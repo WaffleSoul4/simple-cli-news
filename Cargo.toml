@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Waffleleroo (WaffleSoul4)"]
 description = "A simple application that lets you view news with the terminal"
-
-[license]
-name = "MIT"
-url = "https://opensource.org/licenses/MIT"
+license = "MIT"
 
 [dependencies]
 colour = "2.1.0"
