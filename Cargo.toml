@@ -7,6 +7,7 @@ description = "A simple application that lets you view news with the terminal"
 license = "MIT"
 
 [dependencies]
+chrono = "0.4.38"
 colour = "2.1.0"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"

@@ -15,19 +15,16 @@ curl https://sh.rustup.rs -sSf | sh
 cargo install simple-cli-news
 ```
 
-
-
-
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Print top news:
+Print top headlines:
 ```sh 
 simple-cli-news
 ```
 Print news including a query:
 ```sh
-simple-cli-news <query>
+simple-cli-news q <query>
 ```
 
 
@@ -38,5 +35,3 @@ simple-cli-news <query>
 - [ ] Use personal api
 - [ ] Allow user to set country
 - [ ] Who knows what else I'll add
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
