@@ -1,178 +1,109 @@
 mod list;
+mod request;
 
 use crate::list::get_sources;
-use chrono::{Duration, Local};
-use colour::{blue_ln, red_ln, yellow_ln};
-use serde::{Deserialize, Serialize};
+use clap::{command, Arg, Command};
+use request::config;
 use std::error::Error;
 
-#[derive(Deserialize, Debug)]
-struct Articles {
-    articles: Vec<Article>,
-}
-#[derive(Deserialize, Debug)]
-struct Article {
-    title: String,
-    url: String,
-}
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut request = request::Request::new_empty()?;
 
-#[derive(Serialize, Deserialize)]
-struct NewsApiUrl {
-    endpoint: String,
-    api_key: String,
-    country: Option<String>,
-    language: Option<String>,
-    query: Option<String>,
-    category: Option<String>,
-    sources: Option<String>,
-}
+    let mut output_news = true;
 
-impl NewsApiUrl {
-    fn new(endpoint: String, api_key: String) -> NewsApiUrl {
-        NewsApiUrl {
-            endpoint,
-            api_key,
-            country: Some(String::from("us")),
-            language: None,
-            query: None,
-            category: None,
-            sources: None,
-        }
-    }
+    let args = command!()
+        .subcommand(
+            Command::new("list")
+                .about("List possible args for various commands")
+                .subcommand_required(true)
+                .subcommand(
+                    Command::new("sources").about("List possible sources").arg(
+                        Arg::new("country")
+                            .short('c')
+                            .long("country")
+                            .alias("location")
+                            .help("List sources from a country using its 2-Digit ISO code"),
+                    ),
+                ),
+        )
+        .arg(
+            Arg::new("apikey")
+                .short('a')
+                .long("apikey")
+                .alias("key")
+                .help("Update the config with an api key from NewsApi"),
+        )
+        .arg(
+            Arg::new("query")
+                .short('q')
+                .long("query")
+                .alias("search")
+                .help("Search news from the past 14 days"),
+        )
+        .arg(
+            Arg::new("source")
+                .short('s')
+                .long("source")
+                .help("Get news form a certain source with its ID"),
+        )
+        .arg(
+            Arg::new("page_size")
+                .short('p')
+                .long("page_size")
+                .aliases(["page-size", "pagesize", "pgsize", "pg-size"])
+                .help("Set how many articles should be displayed"),
+        )
+        .arg(
+            Arg::new("language")
+                .short('l')
+                .long("language")
+                .alias("lang")
+                .help("Set the default language"),
+        )
+        .get_matches();
 
-    fn to_str(&self) -> String {
-        let mut base = format!(
-            "https://newsapi.org/v2/{}?apiKey={}",
-            self.endpoint, self.api_key,
-        );
-
-        if self.endpoint == "everything" {
-            let date = (Local::now() - Duration::days(14))
-                .format("%Y-%m-%d")
-                .to_string();
-
-            match &self.language {
-                Some(d) => base = format!("{}&language={}", base, d),
-                _ => {}
-            }
-
-            base = format!("{base}&from={date}&pageSize=20")
-        } else if self.endpoint == "top-headlines" {
-            match &self.sources {
-                Some(_) => {}
-                None => match &self.country {
-                    Some(d) => base = format!("{}&country={}", base, d),
-                    _ => {}
-                },
-            }
-
-            match &self.category {
-                Some(d) => base = format!("{}&category={}", base, d),
-                _ => {}
-            }
-        }
-
-        match &self.sources {
-            Some(d) => base = format!("{}&sources={}", base, d),
-            _ => {}
-        }
-
-        match &self.query {
-            Some(d) => base = format!("{}&q={}", base, d),
-            _ => {}
-        }
-
-        base
-    }
-}
-
-fn main() {
-    let mut url: NewsApiUrl = NewsApiUrl::new(
-        String::from("top-headlines"),
-        String::from("c314df27e7884185a4720d347f50e1d4"),
-    );
-
-    let args: Vec<String> = std::env::args().collect();
-    let arg_count = args.len();
-    let mut return_articles = true;
-
-    if arg_count > 1 {
-        match args[1].as_str() {
-            "q" => {
-                if arg_count > 2 {
-                    url.query = Some(args[2].clone());
-                    url.endpoint = String::from("everything");
+    match args.subcommand() {
+        Some(("list", sub_args)) => match sub_args.subcommand() {
+            Some(("sources", sub_sub_args)) => {
+                let country = if let Some(country) = sub_sub_args.get_one::<String>("country") {
+                    Some(country.as_str())
                 } else {
-                    red_ln!("Please input a query")
-                }
+                    None
+                };
+
+                get_sources(country)?.display();
             }
-            "source" => {
-                if arg_count > 2 {
-                    if arg_count > 3 {
-                        red_ln!("Please separate sources using only commas and no spaces")
-                    } else {
-                        url.sources = Some(args[2].clone())
-                    }
-                } else {
-                    red_ln!("Please enter sources");
-                    red_ln!("Run `simple-cli-news list sources' to get a list of sources")
-                }
+            _ => {}
+        },
+        _ => {
+            if let Some(query) = args.get_one::<String>("query") {
+                request.q = Some(query.clone());
+                request = request.with_everything();
             }
-            "list" => {
-                return_articles = false;
-                if arg_count > 2 {
-                    match args[2].as_str() {
-                        "sources" => {
-                            if arg_count > 3 {
-                                if arg_count < 5 {
-                                    match get_sources(Some(args[3].clone())) {
-                                        Ok(d) => {
-                                            d.display();
-                                        }
-                                        Err(e) => red_ln!("Failed to get sources: {}", e),
-                                    }
-                                } else {
-                                    red_ln!("Please input one country at a time")
-                                }
-                            } else {
-                                match get_sources(None) {
-                                    Ok(d) => {
-                                        d.display();
-                                    }
-                                    Err(e) => red_ln!("Failed to get sources: {}", e),
-                                }
-                            }
-                        }
-                        _ => {
-                            red_ln!("Cannot list {}", args[2])
-                        }
-                    }
-                }
+
+            if let Some(source) = args.get_one::<String>("source") {
+                request.sources = Some(source.clone());
+                request = request.with_everything();
             }
-            _ => {
-                red_ln!("Invalid argument")
+
+            if let Some(pagesize) = args.get_one::<String>("page_size") {
+                request.page_size = pagesize.clone().parse::<i32>()?;
+            }
+
+            if let Some(apikey) = args.get_one::<String>("apikey") {
+                config::set_config(Some(apikey.clone()), None)?;
+                output_news = false;
+            }
+
+            if let Some(language) = args.get_one::<String>("language") {
+                config::set_config(None, Some(language.clone()))?;
+                output_news = false;
+            }
+            if output_news {
+                request.to_response()?.output();
             }
         }
     }
-    if return_articles {
-        match get_articles(&url.to_str()) {
-            Ok(d) => print_articles(d),
-            Err(e) => red_ln!("Failed to get articles: {}", e),
-        }
-    }
-}
 
-fn get_articles(url: &str) -> Result<Articles, Box<dyn Error>> {
-    let response = ureq::get(url).call()?.into_string()?;
-    let articles: Articles = serde_json::from_str(&response)?;
-
-    Ok(articles)
-}
-
-fn print_articles(articles: Articles) {
-    for article in articles.articles {
-        println!();
-        yellow_ln!("{}", article.title);
-        blue_ln!(">>> {}", article.url);
-    }
+    Ok(())
 }

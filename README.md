@@ -3,10 +3,7 @@
 <h1>Simple-Cli-News</h1>
 
 ### Prerequisites
-Just make sure you have cargo installed
-```sh
-curl https://sh.rustup.rs -sSf | sh
-```
+Just make sure you have cargo installed: https://doc.rust-lang.org/cargo/getting-started/installation.html
 
 ### Installation
 
@@ -22,19 +19,18 @@ simple-cli-news
 ```
 Print news including a query:
 ```sh
-simple-cli-news q (query)
+simple-cli-news --query (query)
 ```
 Print news from a specific source:
 ```sh 
-simple-cli-news source (source id)
+simple-cli-news --source (source id)
 ```
-Get a list of sources from a country:
-```sh 
-simple-cli-news list sources [Country's 2 digit iso]
+Find more commands to further refine output:
+```sh
+simple-cli-news --help
 ```
+
 
 ## Roadmap
-
-- [ ] Use personal api
 - [ ] Allow user to set country
 - [ ] Who knows what else I'll add

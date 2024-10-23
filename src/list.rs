@@ -25,7 +25,7 @@ impl Sources {
     }
 }
 
-pub fn get_sources(country: Option<String>) -> Result<Sources, Box<dyn Error>> {
+pub fn get_sources(country: Option<&str>) -> Result<Sources, Box<dyn Error>> {
     let response = match country {
         Some(d) => ureq::get(&format!("https://newsapi.org/v2/top-headlines/sources?apiKey=c314df27e7884185a4720d347f50e1d4&country={}",d)),
         None => ureq::get("https://newsapi.org/v2/top-headlines/sources?apiKey=c314df27e7884185a4720d347f50e1d4"),
