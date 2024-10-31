@@ -24,14 +24,14 @@ pub fn get_config() -> Result<NewsConfig, Box<dyn Error>> {
         if !project_dir.config_dir().exists() {
             create_dir_all(project_dir.config_dir())?;
         }
-        let content = serde_yml::to_string(&NewsConfig::default())?;
+        let content = serde_json::to_string(&NewsConfig::default())?;
         let mut file = File::create(&config_file_path)?;
         file.write_all(content.as_ref())?;
     }
 
     let config_contents = &read_to_string(config_file_path.clone())?;
 
-    let news_config: NewsConfig = match serde_yml::from_str(config_contents) {
+    let news_config: NewsConfig = match serde_json::from_str(config_contents) {
         Err(e) => invalid_config(e)?,
         Ok(t) => t,
     };
@@ -39,7 +39,7 @@ pub fn get_config() -> Result<NewsConfig, Box<dyn Error>> {
     Ok(news_config)
 }
 
-fn invalid_config(error: serde_yml::Error) -> Result<NewsConfig, Box<dyn Error>> {
+fn invalid_config(error: serde_json::Error) -> Result<NewsConfig, Box<dyn Error>> {
     loop {
         red_ln!("Error reading config: {}", error);
         red_ln!("How would you like to proceed:");
@@ -81,7 +81,7 @@ pub fn set_config(key: Option<String>, lang: Option<String>) -> Result<(), Box<d
 
     file.set_len(0)?;
 
-    let content = serde_yml::to_string(&NewsConfig::new(key.clone(), lang.clone()))?;
+    let content = serde_json::to_string(&NewsConfig::new(key.clone(), lang.clone()))?;
     file.write_all(content.as_ref())?;
 
     Ok(())

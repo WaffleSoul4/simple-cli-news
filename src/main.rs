@@ -99,6 +99,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 config::set_config(None, Some(language.clone()))?;
                 output_news = false;
             }
+
             if output_news {
                 request.to_response()?.output();
             }
