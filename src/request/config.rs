@@ -2,7 +2,7 @@ use colour::red_ln;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::fs::{create_dir_all, read_to_string, remove_file, File, OpenOptions};
+use std::fs::{create_dir_all, read_to_string, File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -13,20 +13,10 @@ pub struct NewsConfig {
 }
 
 pub fn get_config() -> Result<NewsConfig, Box<dyn Error>> {
-    let project_dir = match ProjectDirs::from("OwO", "Waffleleroo", "simple-cli-news") {
-        Some(dir) => dir,
-        None => return Err(Box::from("Failed to get config")),
-    };
-
     let config_file_path = config_path()?;
 
     if !config_file_path.exists() {
-        if !project_dir.config_dir().exists() {
-            create_dir_all(project_dir.config_dir())?;
-        }
-        let content = serde_json::to_string(&NewsConfig::default())?;
-        let mut file = File::create(&config_file_path)?;
-        file.write_all(content.as_ref())?;
+        panic!("Please set an apikey with 'simple-cli-news -a [apikey from newsapi.org]");
     }
 
     let config_contents = &read_to_string(config_file_path.clone())?;
@@ -50,8 +40,11 @@ fn invalid_config(error: serde_json::Error) -> Result<NewsConfig, Box<dyn Error>
 
         match input.replace("\n", "").as_str() {
             "1" | "" => {
-                remove_file(config_path()?)?;
-                return Ok(get_config()?);
+                OpenOptions::new().write(true).truncate(true).open(config_path()?)?;
+                return Ok({
+                    set_config(None, None, false)?;
+                    get_config()?
+                });
             }
             "2" => panic!("Panicking program"),
             _ => {}
@@ -59,29 +52,33 @@ fn invalid_config(error: serde_json::Error) -> Result<NewsConfig, Box<dyn Error>
     }
 }
 
-pub fn set_config(key: Option<String>, lang: Option<String>) -> Result<(), Box<dyn Error>> {
-    let config_file_path = config_path()?;
+pub fn set_config(key: Option<String>, lang: Option<String>, recover: bool) -> Result<(), Box<dyn Error>> {
+    let config_file_path = &config_path()?;
+    if !config_file_path.exists() {
+        create_dir_all(config_file_path.parent().unwrap())?;
+        File::create(config_file_path)?;
+    }
 
-    let config = get_config()?;
-
+    let mut config =
+        if recover {
+            get_config().unwrap_or_else(|_| NewsConfig::new("".to_owned(), "en".to_owned()))
+        } else {
+            NewsConfig::new("".to_owned(), "en".to_owned())
+        };
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .open(config_file_path)?;
 
-    let lang = match lang {
-        Some(t) => t,
-        None => config.language,
-    };
+    if let Some(key) = key {
+        config.apikey = key;
+    }
 
-    let key = match key {
-        Some(t) => t,
-        None => config.apikey,
-    };
+    if let Some(language) = lang {
+        config.language = language;
+    }
 
-    file.set_len(0)?;
-
-    let content = serde_json::to_string(&NewsConfig::new(key.clone(), lang.clone()))?;
+    let content = serde_json::to_string(&config)?;
     file.write_all(content.as_ref())?;
 
     Ok(())
@@ -100,12 +97,5 @@ fn config_path() -> Result<PathBuf, Box<dyn Error>> {
 impl NewsConfig {
     fn new(apikey: String, language: String) -> NewsConfig {
         NewsConfig { apikey, language }
-    }
-
-    fn default() -> NewsConfig {
-        NewsConfig::new(
-            "c314df27e7884185a4720d347f50e1d4".to_owned(),
-            "en".to_owned(),
-        )
     }
 }

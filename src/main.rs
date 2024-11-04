@@ -2,13 +2,12 @@ mod list;
 mod request;
 
 use crate::list::get_sources;
+use crate::request::Request;
 use clap::{command, Arg, Command};
 use request::config;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut request = request::Request::new_empty()?;
-
     let mut output_news = true;
 
     let args = command!()
@@ -76,31 +75,33 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => {}
         },
         _ => {
-            if let Some(query) = args.get_one::<String>("query") {
-                request.q = Some(query.clone());
-                request = request.with_everything();
-            }
-
-            if let Some(source) = args.get_one::<String>("source") {
-                request.sources = Some(source.clone());
-                request = request.with_everything();
-            }
-
-            if let Some(pagesize) = args.get_one::<String>("page_size") {
-                request.page_size = pagesize.clone().parse::<i32>()?;
-            }
-
             if let Some(apikey) = args.get_one::<String>("apikey") {
-                config::set_config(Some(apikey.clone()), None)?;
+                config::set_config(Some(apikey.clone()), None,true)?;
                 output_news = false;
             }
 
             if let Some(language) = args.get_one::<String>("language") {
-                config::set_config(None, Some(language.clone()))?;
+                config::set_config(None, Some(language.clone()),true)?;
                 output_news = false;
             }
 
             if output_news {
+                let mut request = Request::new_empty()?;
+
+                if let Some(query) = args.get_one::<String>("query") {
+                    request.q = Some(query.clone());
+                    request = request.with_everything();
+                }
+
+                if let Some(source) = args.get_one::<String>("source") {
+                    request.sources = Some(source.clone());
+                    request = request.with_everything();
+                }
+
+                if let Some(pagesize) = args.get_one::<String>("page_size") {
+                    request.page_size = pagesize.clone().parse::<i32>()?;
+                }
+
                 request.to_response()?.output();
             }
         }

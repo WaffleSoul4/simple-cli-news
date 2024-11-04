@@ -156,8 +156,17 @@ impl Request {
     }
 
     pub fn to_response(self) -> Result<Response, Box<dyn Error>> {
-        let response = ureq::get(&self.to_string()).call()?.into_string()?;
-        let response: Response = serde_json::from_str(&response)?;
+        let response_raw = match ureq::get(&self.to_string()).call() {
+            Ok(t) => t,
+            Err(e) => {
+                if e.to_string().contains("401") {
+                    panic!("Apikey is invalid. Please set a valid apikey with 'simple-cli-news -a [apikey from newsapi.org]")
+                }
+                return Err(e.into());
+            }
+        };
+
+        let response = serde_json::from_str::<Response>(&response_raw.into_string()?)?;
 
         Ok(response)
     }
